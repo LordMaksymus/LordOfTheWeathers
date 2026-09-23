@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "WeatherEx",
+  "version": "1.0.0",
+  "icons": {
+    "64": "icons/weathericon.png"
+  },
+  "background": {
+    "service_worker": "background_script.js"
+  },
+  "action": {
+    "default_icon": {
+      "64": "icons/weathericon.png"
+    },
+    "default_popup": "popup.html" 
+  },
+  "permissions": ["storage", "geolocation"],
+  "host_permissions": [
+    "https://api.open-meteo.com/*",
+    "https://timeapi.io/*",
+    "https://nominatim.openstreetmap.org/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*.mozilla.org/*"],
+      "js": ["content_script.js"]
+    }
+  ]
+}
