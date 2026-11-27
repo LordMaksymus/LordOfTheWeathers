@@ -1,8 +1,8 @@
 # Lord Of The Weathers
 
-Lord Of The Weathers is a Manifest V3 browser extension that shows the weather forecast in a toolbar popup. It is built with React, Vite, and Recharts. The browser lists it as **WeatherEx**.
+## About
 
-WeatherEx is a non-commercial project.
+Lord Of The Weathers is a non-commercial browser extension for checking local weather from the toolbar. The browser lists it as **WeatherEx**. It uses Manifest V3 and is built with React, Vite, and Recharts.
 
 ## Download Version 1.0 beta
 
@@ -10,6 +10,12 @@ Download the package for your browser from [GitHub Releases](https://github.com/
 
 - **Chrome, Brave, Edge and other Chromium desktop browsers.** Unzip the Chromium package. On your browser's extensions page, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder that contains `manifest.json`.
 - **Firefox 140+.** Open `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, and choose the Firefox ZIP. Temporary add-ons are removed when Firefox exits. Permanent installation requires a [Mozilla-signed build](https://extensionworkshop.com/documentation/publish/signing-and-distribution-overview/).
+
+## Screenshots
+
+![WeatherEx forecast with current conditions, an hourly temperature chart, and daily forecasts](docs/screenshots/forecast.png)
+
+![WeatherEx settings with City selected and controls for temperature, precipitation, time, and wind speed](docs/screenshots/settings.png)
 
 ## Features
 
