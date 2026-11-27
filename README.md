@@ -4,7 +4,7 @@ Lord Of The Weathers is a Manifest V3 browser extension that shows the weather f
 
 WeatherEx is a non-commercial project.
 
-## Download Version 1.0
+## Download Version 1.0 beta
 
 Download the package for your browser from [GitHub Releases](https://github.com/LordMaksymus/LordOfTheWeathers/releases/tag/v1.0.0).
 
