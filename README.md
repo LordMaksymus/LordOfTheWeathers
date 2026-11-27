@@ -13,7 +13,7 @@ Download the package for your browser from [GitHub Releases](https://github.com/
 
 ## Screenshots
 
-![WeatherEx forecast with current conditions, an hourly temperature chart, and daily forecasts](docs/screenshots/forecast.png)
+![WeatherEx forecast for Madrid with current conditions, an hourly temperature chart, and daily forecasts](docs/screenshots/forecast.png)
 
 ![WeatherEx settings with City selected and controls for temperature, precipitation, time, and wind speed](docs/screenshots/settings.png)
 
