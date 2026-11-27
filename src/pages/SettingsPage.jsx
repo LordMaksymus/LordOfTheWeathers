@@ -72,21 +72,21 @@ function SettingsPage({ settings, isConfigured, saveSettings }) {
             setErrors({ city: 'Enter a city name.' });
             return null;
         }
-        if (resolvedCity.current?.city === cityName) return resolvedCity.current.coordinates;
+        if (resolvedCity.current?.city === cityName) return resolvedCity.current.location;
         if (settings.locationMethod === 'city' && settings.city === cityName && isConfigured) {
-            return { latitude: settings.latitude, longitude: settings.longitude };
+            return { latitude: settings.latitude, longitude: settings.longitude, address: settings.address ?? null };
         }
 
         setPending('Searching for the city…');
         try {
-            const coordinates = await getLocationByCity(cityName, signal);
+            const location = await getLocationByCity(cityName, signal);
             if (signal.aborted) return null;
-            if (!coordinates) {
+            if (!location) {
                 setErrors({ city: 'City not found. Check the spelling or try another city.' });
                 return null;
             }
-            resolvedCity.current = { city: cityName, coordinates };
-            return coordinates;
+            resolvedCity.current = { city: cityName, location };
+            return location;
         } catch (error) {
             if (!signal.aborted) setErrors({ city: describeRequestError(error, 'city search') });
             return null;
@@ -97,26 +97,26 @@ function SettingsPage({ settings, isConfigured, saveSettings }) {
         event.preventDefault();
         return runAction(async signal => {
             const cityName = locationMethod === 'city' ? city.trim() : '';
-            let coordinates;
+            let location;
             if (locationMethod === 'city') {
-                coordinates = await searchCity(cityName, signal);
+                location = await searchCity(cityName, signal);
             } else if (locationMethod === 'geo') {
                 if (!geoPosition) {
                     await locate(signal);
                     return;
                 }
                 const { latitude, longitude } = geoPosition;
-                coordinates = { latitude, longitude };
+                location = { latitude, longitude };
             } else {
                 const validation = validateCoordinates(latitude, longitude);
-                coordinates = validation.coordinates;
-                if (!coordinates) setErrors(validation.errors);
+                location = validation.coordinates;
+                if (!location) setErrors(validation.errors);
             }
-            if (!coordinates || signal.aborted) return;
+            if (!location || signal.aborted) return;
 
             setPending('Saving settings…');
             try {
-                await saveSettings({ locationMethod, city: cityName, ...coordinates, units });
+                await saveSettings({ locationMethod, city: cityName, ...location, units });
                 if (!signal.aborted) navigate('/', { replace: true });
             } catch {
                 if (!signal.aborted) setErrors({ save: 'Settings couldn’t be saved. Try again.' });
@@ -130,21 +130,19 @@ function SettingsPage({ settings, isConfigured, saveSettings }) {
         setErrors({});
     }
 
-    function handleClose() {
-        if (isConfigured) navigate('/', { replace: true });
-        else window.close();
-    }
+    const formId = 'weather-settings-form';
+    const isReviewingPosition = locationMethod === 'geo' && Boolean(detectedPosition);
+    const submitLabel = isReviewingPosition ? 'Use this location' : 'Continue';
 
     return (
         <div className="app settings-page">
             <HeaderSection
-                data={settingsMapper.getHeaderData()}
-                isFirstRun={!isConfigured}
-                onClose={handleClose}
                 disabled={Boolean(pending)}
+                formId={formId}
+                submitLabel={submitLabel}
             />
 
-            <form ref={form} className="settings-form" onSubmit={handleSubmit} noValidate>
+            <form id={formId} ref={form} className="settings-form" onSubmit={handleSubmit} noValidate>
                 <fieldset className="settings-body" disabled={Boolean(pending)} aria-label="Weather preferences">
                     <LocationSection
                         data={settingsMapper.getLocationSectionData()}
@@ -173,8 +171,8 @@ function SettingsPage({ settings, isConfigured, saveSettings }) {
                     <UnitsSection data={settingsMapper.getUnitsSectionData()} units={units} onUnitsChange={setUnits} />
                 </fieldset>
 
-                <div className="settings-footer">
-                    <div className="settings-footer-feedback">
+                {(pending || errors.save) && (
+                    <div className="settings-feedback">
                         {pending && (
                             <p className="settings-progress" role="status">
                                 <span className="progress-dot" aria-hidden="true" />
@@ -183,12 +181,7 @@ function SettingsPage({ settings, isConfigured, saveSettings }) {
                         )}
                         {errors.save && <p className="field-error" role="alert">{errors.save}</p>}
                     </div>
-                    <button type="submit" className="primary-button settings-continue-btn" disabled={Boolean(pending)}>
-                        {locationMethod === 'geo' && detectedPosition
-                            ? 'Use this location'
-                            : isConfigured ? 'Save' : 'Continue'}
-                    </button>
-                </div>
+                )}
             </form>
         </div>
     );

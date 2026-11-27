@@ -1,11 +1,5 @@
 export const settingsMapper = {
 
-    getHeaderData() {
-        return {
-            closeSettingsIcon: './assets/settingsIcon/close-settings-button.svg'
-        }
-    },
-
     getLocationSectionData() {
         return {
             notSelectedGeoIcon: './assets/settingsIcon/gray-geo-icon.svg',

@@ -1,33 +1,47 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import '../../index.css';
 import DailyData from './DailyData';
 
-const VISIBLE_DAYS = 8; // today ... today + 7 (one full week, inclusive)
+const MAX_VISIBLE_DAYS = 8;
+const MIN_DAY_WIDTH = 84;
 
 function DailyDataComponent({ weekData, todayIndex = 0, selectedIndex, onPointSelect }) {
-  const maxStartIndex = Math.max(0, weekData.length - VISIBLE_DAYS);
-  const clampedTodayIndex = Math.min(Math.max(todayIndex, 0), maxStartIndex);
+  const viewport = useRef(null);
+  const [visibleDays, setVisibleDays] = useState(MAX_VISIBLE_DAYS);
+  const [requestedStartIndex, setStartIndex] = useState(todayIndex);
+  const maxStartIndex = Math.max(0, weekData.length - visibleDays);
+  const startIndex = Math.min(Math.max(requestedStartIndex, 0), maxStartIndex);
 
-  const [startIndex, setStartIndex] = useState(clampedTodayIndex);
+  useLayoutEffect(() => {
+    const element = viewport.current;
+    const measure = () => {
+      const days = Math.floor(element.clientWidth / MIN_DAY_WIDTH);
+      setVisibleDays(Math.max(1, Math.min(MAX_VISIBLE_DAYS, days)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const canScrollLeft = startIndex > 0;
   const canScrollRight = startIndex < maxStartIndex;
 
   const scrollLeft = () => {
-    setStartIndex((prev) => Math.max(0, prev - 1));
+    setStartIndex(Math.max(0, startIndex - 1));
   };
 
   const scrollRight = () => {
-    setStartIndex((prev) => Math.min(maxStartIndex, prev + 1));
+    setStartIndex(Math.min(maxStartIndex, startIndex + 1));
   };
 
   const arrowLeftIcon = weekData[0]?.arrowLeftIcon;
   const arrowRightIcon = weekData[0]?.arrowRightIcon;
 
   const trackStyle = useMemo(() => ({
-    width: `${(weekData.length / VISIBLE_DAYS) * 100}%`,
+    width: `${(weekData.length / visibleDays) * 100}%`,
     transform: `translateX(-${(startIndex / weekData.length) * 100}%)`,
-  }), [weekData.length, startIndex]);
+  }), [weekData.length, startIndex, visibleDays]);
 
   const itemStyle = useMemo(() => ({
     width: `${100 / weekData.length}%`,
@@ -45,7 +59,7 @@ function DailyDataComponent({ weekData, todayIndex = 0, selectedIndex, onPointSe
         <img src={arrowLeftIcon} alt="" />
       </button>
 
-      <div className="daily-data-viewport">
+      <div className="daily-data-viewport" ref={viewport}>
         <div className="daily-data-cards" style={trackStyle}>
           {weekData.map((day, i) => (
             <div className='daily-data-item' style={itemStyle} key={i}>

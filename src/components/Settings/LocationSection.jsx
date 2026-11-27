@@ -1,10 +1,11 @@
 import React from 'react';
+import { supportsGeolocation } from '../../services/GeolocationService';
 
 const LOCATION_METHODS = [
     { key: 'geo', label: 'Geolocation', selectedIcon: 'selectedGeoIcon', idleIcon: 'notSelectedGeoIcon' },
     { key: 'city', label: 'City', selectedIcon: 'selectedCityIcon', idleIcon: 'notSelectedCityIcon' },
     { key: 'coordinates', label: 'Coordinates', selectedIcon: 'selectedCoorIcon', idleIcon: 'notSelectedCoorIcon' },
-];
+].filter(option => supportsGeolocation || option.key !== 'geo');
 
 function describePosition(position) {
     if (!position) return 'Allow the browser to find your current position.';

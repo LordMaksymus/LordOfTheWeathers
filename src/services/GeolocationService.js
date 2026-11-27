@@ -1,5 +1,7 @@
 import { validateCoordinates } from '../utils/coordinates';
 
+export const supportsGeolocation = import.meta.env.MODE !== 'safari';
+
 const MAX_ACCURACY_METERS = 5000;
 const MAX_POSITION_AGE_MS = 60000;
 const BROWSER_TIMEOUT_MS = 15000;

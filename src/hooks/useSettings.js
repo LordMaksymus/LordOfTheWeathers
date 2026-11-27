@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import browser from 'webextension-polyfill';
+import { supportsGeolocation } from '../services/GeolocationService';
 import { validateCoordinates } from '../utils/coordinates';
 
+const storage = (globalThis.browser ?? globalThis.chrome)?.storage?.local;
+
 export const DEFAULT_SETTINGS = {
-    locationMethod: 'geo',
+    locationMethod: supportsGeolocation ? 'geo' : 'city',
     city: '',
     latitude: '',
     longitude: '',
@@ -23,11 +25,15 @@ function legacyCoordinate(value) {
 }
 
 function normalizeSettings(saved) {
+    const savedMethod = !supportsGeolocation && saved?.locationMethod === 'geo'
+        ? 'coordinates'
+        : saved?.locationMethod;
     const settings = {
-        locationMethod: ['geo', 'city', 'coordinates'].includes(saved?.locationMethod)
-            ? saved.locationMethod
+        locationMethod: ['geo', 'city', 'coordinates'].includes(savedMethod)
+            ? savedMethod
             : DEFAULT_SETTINGS.locationMethod,
         city: typeof saved?.city === 'string' ? saved.city.trim() : '',
+        address: saved?.address ?? null,
         latitude: legacyCoordinate(saved?.latitude),
         longitude: legacyCoordinate(saved?.longitude),
         units: {
@@ -51,7 +57,7 @@ export function useSettings() {
         let active = true;
         async function load() {
             try {
-                const { settings } = await browser.storage.local.get('settings');
+                const { settings } = await storage.get('settings');
                 if (active) setState({ status: 'ready', ...normalizeSettings(settings) });
             } catch {
                 if (active) setState({ status: 'error', settings: DEFAULT_SETTINGS, isConfigured: false });
@@ -67,7 +73,7 @@ export function useSettings() {
     }
 
     async function saveSettings(settings) {
-        await browser.storage.local.set({ settings });
+        await storage.set({ settings });
         setState({ status: 'ready', settings, isConfigured: true });
     }
 

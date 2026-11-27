@@ -9,11 +9,19 @@ export class RequestError extends Error {
 }
 
 export async function fetchJson(url, signal) {
-    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-    const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
+    if (signal?.aborted) throw signal.reason;
+
+    const controller = new AbortController();
+    const cancel = () => controller.abort(signal.reason);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, REQUEST_TIMEOUT_MS);
+    signal?.addEventListener('abort', cancel, { once: true });
 
     try {
-        const response = await fetch(url, { signal: requestSignal });
+        const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) throw new RequestError('http', response.status);
 
         try {
@@ -24,9 +32,12 @@ export async function fetchJson(url, signal) {
         }
     } catch (error) {
         if (signal?.aborted) throw signal.reason;
-        if (timeout.aborted) throw new RequestError('timeout');
+        if (timedOut) throw new RequestError('timeout');
         if (error instanceof RequestError) throw error;
         throw new RequestError('network');
+    } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', cancel);
     }
 }
 

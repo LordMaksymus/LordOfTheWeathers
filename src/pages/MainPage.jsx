@@ -15,23 +15,25 @@ import { weekWeatherMapper } from '../mappers/weekWeatherMapper';
 import { describeRequestError } from '../services/fetchJson';
 import { validateCoordinates } from '../utils/coordinates';
 
+const CURRENT_SELECTION = {
+    mode: 'current',
+    index: null,
+    chartIndex: null,
+    dayIndex: null,
+    activeDayIndex: null,
+};
+
 function MainPage({ settings }) {
     const navigate = useNavigate();
     const openSettings = () => navigate('/settings');
-    const [selection, setSelection] = useState({
-        mode: 'current',
-        index: null,
-        chartIndex: null,
-        dayIndex: null,
-        activeDayIndex: null,
-    });
+    const [selection, setSelection] = useState(CURRENT_SELECTION);
 
-    const { units, locationMethod, city } = settings;
+    const { units, locationMethod, city, address } = settings;
     const { coordinates } = validateCoordinates(settings.latitude, settings.longitude);
     const lat = coordinates?.latitude;
     const lon = coordinates?.longitude;
     const weather = useWeather(lat, lon, 7, 14);
-    const lookupAddress = !(locationMethod === 'city' && city);
+    const lookupAddress = !address?.town || !address?.region || !address?.country;
     const location = useLocationByCoordinates(lookupAddress ? lat : null, lookupAddress ? lon : null);
 
     if (!coordinates) {
@@ -54,11 +56,22 @@ function MainPage({ settings }) {
     const fallbackLocation = locationMethod === 'city' && city
         ? city
         : lat.toFixed(4) + ', ' + lon.toFixed(4);
-    const headerData = headerMapper.getHeaderData(location.data, fallbackLocation, weather.data, units.time);
+    const displayAddress = {
+        town: address?.town || location.data?.town || (locationMethod === 'city' ? city : null),
+        region: address?.region || location.data?.region,
+        country: address?.country || location.data?.country,
+    };
+    const headerData = headerMapper.getHeaderData(displayAddress, fallbackLocation, weather.data, units.time);
     const weekData = weekWeatherMapper.getWeekData(weather.data, units.temperature);
     const weatherInfo = infoMapper.getWeatherData(selection, weather.data, units.temperature, units.precipitation, units.wind);
+    const todayIndex = weather.data.input.pastDays;
 
     const handleDaySelect = ({ index, dayIndex }) => {
+        if (dayIndex === todayIndex) {
+            setSelection(CURRENT_SELECTION);
+            return;
+        }
+
         setSelection({
             mode: 'custom day',
             index,
@@ -92,8 +105,8 @@ function MainPage({ settings }) {
             />
             <DailyDataComponent
                 weekData={weekData}
-                todayIndex={weather.data.input.pastDays}
-                selectedIndex={selection.activeDayIndex ?? weather.data.input.pastDays}
+                todayIndex={todayIndex}
+                selectedIndex={selection.activeDayIndex ?? todayIndex}
                 onPointSelect={handleDaySelect}
             />
         </div>
