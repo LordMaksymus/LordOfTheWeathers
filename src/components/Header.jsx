@@ -9,8 +9,8 @@ function Header({ data, navigationToSettings }) {
           onClick={navigationToSettings}>
           <img src={data.settingsIcon} alt="Settings" className="settings-icon" />
         </button>
-        <span className="header-location">
-          {data.town} {data.region} {data.country}
+        <span className="header-location" title={data.location}>
+          {data.location}
         </span>
       </div>
 

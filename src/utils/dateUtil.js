@@ -1,4 +1,7 @@
 export const dateUtil = {
+    getWeekday: (date, weekday = 'long') => {
+        return new Intl.DateTimeFormat('en', { weekday, timeZone: 'UTC' }).format(new Date(date));
+    },
     getCurrentMounth: (date) => {
         const numberOfMonth = Number(date.split("-")[1]);
         if (numberOfMonth == 1) {
@@ -29,7 +32,7 @@ export const dateUtil = {
             return "Sep";
         }
         if (numberOfMonth == 10) {
-            return "Okt";
+            return "Oct";
         }
         if (numberOfMonth == 11) {
             return "Nov";

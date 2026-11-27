@@ -17,8 +17,8 @@ function DailyData({ data, onClick, isSelected }) {
       />
 
       <div className="daily-data-temps">
-        <span className="daily-data-max">{Math.round(maxTemp)}°</span>
-        <span className="daily-data-min">{Math.round(minTemp)}°</span>
+        <span className="daily-data-max">{maxTemp == null ? '—' : Math.round(maxTemp) + '°'}</span>
+        <span className="daily-data-min">{minTemp == null ? '—' : Math.round(minTemp) + '°'}</span>
       </div>
     </div>
   );

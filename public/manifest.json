@@ -17,7 +17,6 @@
   "permissions": ["storage", "geolocation"],
   "host_permissions": [
     "https://api.open-meteo.com/*",
-    "https://timeapi.io/*",
     "https://nominatim.openstreetmap.org/*"
   ],
   "content_scripts": [

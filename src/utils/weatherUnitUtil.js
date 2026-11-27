@@ -1,5 +1,6 @@
 export const WeatherUnitUtil = {
     formatTemperature: (temp, unit = 'C') => {
+        if (temp == null) return null;
         if (unit === "F") {
             return (temp * 1.8 + 32).toFixed(1);
         }
@@ -10,25 +11,13 @@ export const WeatherUnitUtil = {
     },
 
     formatTime: (time, unit = "24h") => {
-        const newTime = time.slice(0, 5);
-        if (unit === "12h") {
-            let hour = Number(newTime.split(":")[0]);
-            let min = Number(newTime.split(":")[1]);
-            if (hour == 0) {
-                return 12 + ":" + min + " AM";
-            }
-            if (hour > 0 && hour < 12) {
-                return hour + ":" + min + " PM";
-            }
-            if (hour == 12) {
-                return 12 + ":" + min + " PM";
-            }
-            if (hour > 12) {
-                hour -= 12;
-                return hour + ":" + min + " PM";
-            }
+        const [hours, minutes] = time.split(':');
+        const hour = Number(hours);
+        if (unit === '12h') {
+            const period = hour < 12 ? 'AM' : 'PM';
+            return (hour % 12 || 12) + ':' + minutes + ' ' + period;
         }
-        return newTime;
+        return hours.padStart(2, '0') + ':' + minutes;
     },
 
     formatWindSpeed: (windSpeed, unit = "ms") => {
@@ -45,7 +34,7 @@ export const WeatherUnitUtil = {
     },
 
     formatPrecipitation: (precipitation, unit = "mm") => {
-        if ("inch" === unit) {
+        if (unit === "in" || unit === "inch") {
             return (precipitation * 0.03937008).toFixed(1);
         }
         return precipitation;
@@ -76,8 +65,8 @@ export const WeatherUnitUtil = {
         if ("mm" === unit) {
             return "mm";
         }
-        if ("inch" === unit) {
-            return "inch";
+        if (unit === "in" || unit === "inch") {
+            return "in";
         }
         return "%";
     }

@@ -1,145 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '.././index.css';
-import { useTime } from '.././hooks/useTime';
-import { useLocationByCoordinates } from '.././hooks/useLocation';
-import { useWeather } from '.././hooks/useWeather';
-import { useSettings } from '../hooks/useSettings';
-import Header from '.././components/Header';
-import WeatherChart from '.././components/WeatherChart/WetherChart';
-import WeatherInfo from '.././components/WeatherInfo';
-import DailyDataComponent from '.././components/DailyWeather/DailyDataComponent';
-import { chartMapper } from '.././mappers/chartMapper';
-import { windMapper } from '.././mappers/windMapper';
-import { headerMapper } from '.././mappers/headerMapper';
-import { infoMapper } from '.././mappers/infoMapper';
-import { weekWeatherMapper } from '.././mappers/weekWeatherMapper';
+import { useLocationByCoordinates } from '../hooks/useLocation';
+import { useWeather } from '../hooks/useWeather';
+import { ErrorScreen, LoadingScreen } from '../components/PopupStatus';
+import Header from '../components/Header';
+import WeatherChart from '../components/WeatherChart/WetherChart';
+import WeatherInfo from '../components/WeatherInfo';
+import DailyDataComponent from '../components/DailyWeather/DailyDataComponent';
+import { chartMapper } from '../mappers/chartMapper';
+import { windMapper } from '../mappers/windMapper';
+import { headerMapper } from '../mappers/headerMapper';
+import { infoMapper } from '../mappers/infoMapper';
+import { weekWeatherMapper } from '../mappers/weekWeatherMapper';
+import { describeRequestError } from '../services/fetchJson';
+import { validateCoordinates } from '../utils/coordinates';
 
-const DEFAULT_UNITS = {
-    time: '24h',
-    wind: 'ms',
-    temperature: 'C',
-    precipitation: 'mm',
-};
-
-function MainPage() {
+function MainPage({ settings }) {
     const navigate = useNavigate();
-
+    const openSettings = () => navigate('/settings');
     const [selection, setSelection] = useState({
-        mode: 'current', // 'current' or 'custom hour' or 'custom day'
-        index: null,  // hour index
-        chartIndex: null, // hour index for charts
+        mode: 'current',
+        index: null,
+        chartIndex: null,
         dayIndex: null,
-        activeDayIndex: null
+        activeDayIndex: null,
     });
 
-    const settingsValues = useSettings();
+    const { units, locationMethod, city } = settings;
+    const { coordinates } = validateCoordinates(settings.latitude, settings.longitude);
+    const lat = coordinates?.latitude;
+    const lon = coordinates?.longitude;
+    const weather = useWeather(lat, lon, 7, 14);
+    const lookupAddress = !(locationMethod === 'city' && city);
+    const location = useLocationByCoordinates(lookupAddress ? lat : null, lookupAddress ? lon : null);
 
-    useEffect(() => {
-        if (settingsValues.isLoaded && settingsValues.isFirstRun) {
-            navigate("/settings");
-        }
-    }, [settingsValues.isLoaded, settingsValues.isFirstRun, navigate]);
-
-    const rawLat = settingsValues.settings?.latitude;
-    const rawLon = settingsValues.settings?.longitude;
-
-    const lat = rawLat === '' || rawLat === null || rawLat === undefined ? null : Number(rawLat);
-    const lon = rawLon === '' || rawLon === null || rawLon === undefined ? null : Number(rawLon);
-
-    const hasValidCoords =
-        lat !== null && lon !== null &&
-        Number.isFinite(lat) && Number.isFinite(lon) &&
-        !(lat === 0 && lon === 0);
-
-    const weather = useWeather(hasValidCoords ? lat : null, hasValidCoords ? lon : null, 7, 14);
-    const locationByCoordinates = useLocationByCoordinates(hasValidCoords ? lat : null, hasValidCoords ? lon : null);
-    const time = useTime(hasValidCoords ? lat : null, hasValidCoords ? lon : null, 7, 14);
-
-
-    if (
-        !settingsValues.isLoaded ||
-        !hasValidCoords ||
-        weather.loading || !weather.data ||
-        locationByCoordinates.loading || !locationByCoordinates.data ||
-        time.loading || !time.data
-    ) {
-        return (<div className="app">
-            {hasValidCoords ? "Loading..." : "Error: no data"}
-        </div>);
+    if (!coordinates) {
+        return <ErrorScreen title="Location required" message="Choose a location to see its forecast." onOpenSettings={openSettings} />;
     }
 
-    console.log("-----------------------------------------------------------------------:");
+    if (weather.error) {
+        return (
+            <ErrorScreen
+                title="Forecast unavailable"
+                message={describeRequestError(weather.error, 'weather')}
+                onRetry={weather.retry}
+                onOpenSettings={openSettings}
+            />
+        );
+    }
 
-    console.log("weather:");
-    console.log(weather.data);
-    console.log("locationByCoordinates: ");
-    console.log(locationByCoordinates.data);
-    console.log("time: ");
-    console.log(time.data);
+    if (weather.loading) return <LoadingScreen message="Loading forecast…" />;
 
-    console.log("Lan:" + lat);
-    console.log("Lon:" + lon);
+    const fallbackLocation = locationMethod === 'city' && city
+        ? city
+        : lat.toFixed(4) + ', ' + lon.toFixed(4);
+    const headerData = headerMapper.getHeaderData(location.data, fallbackLocation, weather.data, units.time);
+    const weekData = weekWeatherMapper.getWeekData(weather.data, units.temperature);
+    const weatherInfo = infoMapper.getWeatherData(selection, weather.data, units.temperature, units.precipitation, units.wind);
 
-    console.log("-----------------------------------------------------------------------:");
-
-    const units = settingsValues.settings.units;
-
-    const headerData = headerMapper.getHeaderData(locationByCoordinates.data, time.data, "24h");
-    const dailyWeatherData = weekWeatherMapper.getWeekData(weather.data, time.data, "C");
-
-    const tempForm = (value) => chartMapper.tempFormatter(value, "C");
-    const precipProbabilityForm = (value) => chartMapper.precipProbabilityFormatter(value);
-
-    let weatherInfoData = infoMapper.getWeatherData(selection, weather.data, units.temperature, units.precipitation, units.wind);
-    let dataForLineChart = chartMapper.getTempChartData(selection, weather.data, units.temperature, units.time);
-    let dataForBarChart = chartMapper.getPrecipProbabilityChartData(selection, weather.data, units.precipitation, units.time);
-    let dataForWindChart = windMapper.getWindChartData(selection, weather.data, units.wind, units.time);
-
-    const handleDaySelect = (payload) => {
-        console.log("dayIndex:" + payload.dayIndex);
+    const handleDaySelect = ({ index, dayIndex }) => {
         setSelection({
             mode: 'custom day',
-            index: payload.index,
-            dayIndex: payload.dayIndex,
-            chartIndex: payload.index,
-            activeDayIndex: payload.dayIndex
+            index,
+            dayIndex,
+            chartIndex: index,
+            activeDayIndex: dayIndex,
         });
     };
 
-    const handlePointSelect = (payload) => {
-        setSelection({
+    const handlePointSelect = point => {
+        if (!point) return;
+        setSelection(previous => ({
+            ...previous,
             mode: 'custom hour',
-            index: payload.index,
-            dayIndex: selection.dayIndex,
-            chartIndex: selection.chartIndex,
-            activeDayIndex: selection.dayIndex
-        });
+            index: point.index,
+            activeDayIndex: previous.dayIndex,
+        }));
     };
 
-
-    return (<div className="app">
-        <Header
-            data={headerData}
-            navigationToSettings={() => { navigate("/settings") }} />
-        <WeatherInfo
-            data={weatherInfoData}
-        />
-        <WeatherChart
-            onPointSelect={handlePointSelect}
-            tempData={dataForLineChart}
-            precipData={dataForBarChart}
-            windData={dataForWindChart}
-            tempFormatter={tempForm}
-            precipFormatter={precipProbabilityForm}
-        />
-        <DailyDataComponent
-            weekData={dailyWeatherData}
-            todayIndex={weather.data.input.pastDays}
-            selectedIndex={selection.activeDayIndex === null ? weather.data.input.pastDays : selection.activeDayIndex}
-            onPointSelect={handleDaySelect}
-        />
-    </div>);
+    return (
+        <div className="app">
+            <Header data={headerData} navigationToSettings={openSettings} />
+            <WeatherInfo data={weatherInfo} />
+            <WeatherChart
+                onPointSelect={handlePointSelect}
+                tempData={chartMapper.getTempChartData(selection, weather.data, units.temperature, units.time)}
+                precipData={chartMapper.getPrecipProbabilityChartData(selection, weather.data, units.time)}
+                windData={windMapper.getWindChartData(selection, weather.data, units.wind, units.time)}
+                tempFormatter={value => chartMapper.tempFormatter(value, units.temperature)}
+                precipFormatter={chartMapper.precipProbabilityFormatter}
+            />
+            <DailyDataComponent
+                weekData={weekData}
+                todayIndex={weather.data.input.pastDays}
+                selectedIndex={selection.activeDayIndex ?? weather.data.input.pastDays}
+                onPointSelect={handleDaySelect}
+            />
+        </div>
+    );
 }
 
 export default MainPage;

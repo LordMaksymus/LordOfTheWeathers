@@ -1,22 +1,30 @@
-export const getLocationByCity = async (cityName) => {
-  const response = await fetch(`https://nominatim.openstreetmap.org/search?` +
-    `q=${cityName}&format=jsonv2`);
+import { LocationTransformer } from '../transformers/LocationTransformer';
+import { validateCoordinates } from '../utils/coordinates';
+import { fetchJson, RequestError } from './fetchJson';
 
-  if (!response.ok) throw new Error("API Error");
-  return await response.json();
+export async function getLocationByCity(cityName, signal) {
+    const params = new URLSearchParams({ q: cityName, format: 'jsonv2', limit: '5' });
+    const data = await fetchJson('https://nominatim.openstreetmap.org/search?' + params, signal);
 
+    if (!Array.isArray(data)) throw new RequestError('invalid-response');
+    if (data.length === 0) return null;
+
+    for (const place of data) {
+        const { coordinates } = validateCoordinates(place?.lat, place?.lon);
+        if (coordinates) return coordinates;
+    }
+
+    throw new RequestError('invalid-response');
 }
 
-export const getLocationByCoordinates = async (lat, lon) => {
-  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?` +
-    `lat=${lat}&lon=${lon}&zoom=18&format=jsonv2`);
+export async function getLocationByCoordinates(lat, lon, signal) {
+    const params = new URLSearchParams({ lat, lon, zoom: '10', format: 'jsonv2' });
+    const data = await fetchJson('https://nominatim.openstreetmap.org/reverse?' + params, signal);
+    if (!data?.address || typeof data.address !== 'object') return null;
 
-  console.log(`https://nominatim.openstreetmap.org/reverse?` +
-    `lat=${lat}&lon=${lon}&zoom=18&format=jsonv2`);
-
-  if (!response.ok) throw new Error("API Error");
-  return await response.json();
-
+    return {
+        town: LocationTransformer.getTownByCoordinates(data),
+        region: LocationTransformer.getRegionByCoordinates(data),
+        country: LocationTransformer.getCountryByCoordinates(data),
+    };
 }
-
-

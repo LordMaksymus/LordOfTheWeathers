@@ -71,7 +71,7 @@ const windFormatter = (value, unit) => {
         return `${value}km/h`;
     }
     if ("mph" === unit) {
-        return `${value}mp/h`;
+        return `${value}mph`;
     }
     if ("knots" === unit) {
         return `${value}knots`;
